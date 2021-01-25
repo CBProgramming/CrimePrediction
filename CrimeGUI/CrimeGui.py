@@ -49,6 +49,8 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     print("Making prediction")
     y_predict = model.predict(x_data)
     print(y_predict)
+    y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_predict,neighbourhoods_data)
+    print(y_predict)
     x = 0
     #hotspot_indexes = []
     hotspot_values = []
@@ -75,6 +77,29 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     #print(hotspot_indexes)
     print(hotspot_values)
     print(hotspot_neighbourhoods)
+
+def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
+    indexes_to_remove = []
+    for parent_key in PARENT_NEIGHBOURHOODS:
+        parent_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == parent_key].tolist()[0]
+        parent_value = y_predict[parent_index]
+        if parent_value < 0:
+            parent_value = 0
+        for sub_neighbourhood in PARENT_NEIGHBOURHOODS[parent_key]:
+            sub_neighbourhood_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == sub_neighbourhood].tolist()[0]
+            indexes_to_remove.append(sub_neighbourhood_index)
+            sub_neighbourhood_value = y_predict[sub_neighbourhood_index]
+            if sub_neighbourhood_value < 0:
+                sub_neighbourhood_value = 0
+            parent_value = parent_value + sub_neighbourhood_value
+        y_predict[parent_index] = parent_value
+    neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[indexes_to_remove])
+    indexes_to_remove.sort(reverse=True)
+    for index in indexes_to_remove:
+        y_predict = np.delete(y_predict,index)
+    return y_predict,neighbourhoods_data
+    
+    
 
 ### UI FRAME ###
 def setup_dropdown_menus():
@@ -322,7 +347,7 @@ FEATURES_KEY = SELECTED_FEATURES.get()
 PARENT_NEIGHBOURHOODS = {
     "Central Waterfront" : ["Dogpatch"],
     "Eureka Valley" : ["Dolores Heights","Castro"],
-    "Buesna Vista Park" : ["Ashbury Heights"],
+    "Buena Vista" : ["Ashbury Heights"],
     "Cole Valley" : ["Parnassus Heights"],
     "Bayview" : ["Apparel City", "Produce Market"],
     "Russian Hill" : ["Aquatic Park / Ft. Mason"],
@@ -330,7 +355,7 @@ PARENT_NEIGHBOURHOODS = {
     "Western Addition" : ["Cathedral Hill", "Japantown"],
     "Downtown / Union Square" : ["Fairmount", "Chinatown", "Lower Nob Hill", "Polk Gulch"],
     "Mission Terrace" : ["Cayuga"],
-    "North Waterfront" : ["Fisherman's Wharf"],
+    "Northern Waterfront" : ["Fishermans Wharf"],
     "Bernal Heights" : ["Holly Park", "Peralta Heights", "St. Marys Park"],
     "Hunters Point" : ["India Basin"],
     "Forest Hill" : ["Laguna Honda"],
@@ -341,7 +366,7 @@ PARENT_NEIGHBOURHOODS = {
     "Presidio Heights" : ["Presidio Terrace"],
     "South Beach" : ["Rincon Hill"],
     "Potrero Hill" : ["Showplace Square"],
-    "Vistacon Valley" : ["Sunnydale"],
+    "Visitacion Valley" : ["Sunnydale"],
     "Lincoln Park / Ft. Miley" : ["Sutro Heights"],
     "Cow Hollow" : ["Union Street"]
     }
