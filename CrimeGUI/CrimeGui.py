@@ -30,9 +30,11 @@ def filter_data(data, model_key, features_key,calendar_date):
         
 
 def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
+    print("reached load model")
     model_tag = MODEL_FILE_TAGS[model_key]
     feature_tag = FEATURE_FILE_TAGS[features_key]
     file_path = MODEL_PATH + model_tag + MODEL_FEATURE_SEPARATOR + feature_tag
+    print(file_path)
     try:
         with open(file_path, 'rb') as f:
             model = pickle.load(f)
@@ -54,10 +56,21 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     print(NUM_HOTSPOTS)
     while x < NUM_HOTSPOTS:
         index_max = np.argmax(y_predict)
+        #print("\nIndex max = ",index_max)
         #hotspot_indexes.append(index_max)
         hotspot_values.append(y_predict[index_max])
+        #print("Hotspot value = ",y_predict[index_max])
+        #print("Hotspot values = ",hotspot_values)
         hotspot_neighbourhoods.append(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
+        #print("Hotspot neighbourhood = ",neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
+        #print("Hotspot neighbourhoods = ",hotspot_neighbourhoods)
         y_predict = np.delete(y_predict,index_max)
+        #print("Size of y = ",len(y_predict))
+        neighbourhoods_data = neighbourhoods_data.drop([index_max])
+        neighbourhoods_data.reset_index(drop=True, inplace=True)
+        #print("Size of neighbourhoods",len(neighbourhoods_data.index))
+        #print("Neighbourhoods:\n")
+        #print(neighbourhoods_data)
         x += 1
     #print(hotspot_indexes)
     print(hotspot_values)
@@ -255,8 +268,8 @@ SVM_NAME, RANDOM_FOREST_NAME, DECISION_TREE_NAME = "SVM","Random Forest","Decisi
 MODELS = [SVM_NAME, RANDOM_FOREST_NAME, DECISION_TREE_NAME]
 MODEL_FILE_TAGS = {
     SVM_NAME : "svm",
-    RANDOM_FOREST_NAME : "decision_tree",
-    DECISION_TREE_NAME : "random_forest"
+    RANDOM_FOREST_NAME : "random_forest",
+    DECISION_TREE_NAME : "decision_tree"
     }
 
 ### Define GUI geometry ###
