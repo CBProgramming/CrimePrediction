@@ -11,8 +11,6 @@ import numpy as np
       
 def filter_data(data, model_key, features_key,calendar_date):
     x_data = data.loc[data[DATE_COL_KEY].str.contains(calendar_date)]
-    ##NEED TO GET Y AND NEIGHBORHOOD COL###
-    
     if (x_data.empty):
         DATE_BUTTON_TEXT.set(DATE_DROPDOWN_HELP_TEXT)
         messagebox.showerror(NO_DATA_FOUND_TITLE, NO_DATA_FOUND_MESSAGE)
@@ -77,6 +75,7 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     #print(hotspot_indexes)
     print(hotspot_values)
     print(hotspot_neighbourhoods)
+    sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspot_neighbourhoods)
 
 def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
     indexes_to_remove = []
@@ -197,11 +196,18 @@ def place_gps_markers(hotspots):
         y = int(map_height * coords[1])
         map_image.paste(gps_marker_image, (x, y), gps_marker_image)
     sf_map_photo = ImageTk.PhotoImage(map_image)
+    #new_file_name = "hotspots.png" ### DELETE ME ###
+    #sf_map_photo._PhotoImage__photo.write(new_file_name)  ### DELETE ME ###
+    print(ROOT)
+    components = canvas.slaves()
+    print(components)
     map_label = tk.Label(ROOT, image = sf_map_photo)
     map_label.bind(CONFIGURE_EVENT_STRING,adjust_map_size)
+    #adjust_map_size(sf_map_photo)
     map_label.place(relwidth = MAP_LABEL_WIDTH,
                     relheight = MAP_LABEL_HEIGHT,
                 relx = MAP_X, rely = MAP_Y)
+    print("made it")
     return sf_map_photo, map_label, map_image
 
 ### OPEN FILE ###
@@ -465,6 +471,9 @@ hotspots = ["West Portal"]
 ### create image with relevant gps hotspots, call this once hotspots are calculated
 sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspots)
 setup_dropdown_menus()
+
+hotspots = ["Tenderloin"]
+sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspots)
 
 
 ROOT.mainloop()
