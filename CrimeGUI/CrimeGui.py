@@ -28,11 +28,9 @@ def filter_data(data, model_key, features_key,calendar_date):
         
 
 def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
-    print("reached load model")
     model_tag = MODEL_FILE_TAGS[model_key]
     feature_tag = FEATURE_FILE_TAGS[features_key]
     file_path = MODEL_PATH + model_tag + MODEL_FEATURE_SEPARATOR + feature_tag
-    print(file_path)
     try:
         with open(file_path, 'rb') as f:
             model = pickle.load(f)
@@ -41,38 +39,21 @@ def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
         messagebox.showerror(MODEL_NOT_LOADED_TITLE, MODEL_NOT_LOADED_MESSAGE + file_path)
 
 def make_prediction(model, x_data, y_data, neighbourhoods_data):
-    print(x_data)
-    print(y_data)
-    print(neighbourhoods_data)
-    print("Making prediction")
     y_predict = model.predict(x_data)
     print(y_predict)
     y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_predict,neighbourhoods_data)
     print(y_predict)
     x = 0
-    #hotspot_indexes = []
     hotspot_values = []
     hotspot_neighbourhoods = []
-    print(NUM_HOTSPOTS)
     while x < NUM_HOTSPOTS:
         index_max = np.argmax(y_predict)
-        #print("\nIndex max = ",index_max)
-        #hotspot_indexes.append(index_max)
         hotspot_values.append(y_predict[index_max])
-        #print("Hotspot value = ",y_predict[index_max])
-        #print("Hotspot values = ",hotspot_values)
         hotspot_neighbourhoods.append(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
-        #print("Hotspot neighbourhood = ",neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
-        #print("Hotspot neighbourhoods = ",hotspot_neighbourhoods)
         y_predict = np.delete(y_predict,index_max)
-        #print("Size of y = ",len(y_predict))
         neighbourhoods_data = neighbourhoods_data.drop([index_max])
         neighbourhoods_data.reset_index(drop=True, inplace=True)
-        #print("Size of neighbourhoods",len(neighbourhoods_data.index))
-        #print("Neighbourhoods:\n")
-        #print(neighbourhoods_data)
         x += 1
-    #print(hotspot_indexes)
     print(hotspot_values)
     print(hotspot_neighbourhoods)
     sf_map_photo, map_label = place_gps_markers(hotspot_neighbourhoods)
@@ -167,19 +148,12 @@ def screen_resized(config_event):
             
 def adjust_map_size(height):
     photo_height = sf_map_photo.height()
-    print('Photo height:',photo_height)
     suggested_width = int(height/(sf_map_photo.height())*(sf_map_photo.width()))
-    print('Suggested width:',suggested_width)
     if (map_label.winfo_width() >= suggested_width):
-        print("If entered")
         width = suggested_width
     else:
-        print("Else entered")
         width = map_label.winfo_width()
-        print('Width:',width)
-        print(height)
         height = int(width/(sf_map_photo.width())*(sf_map_photo.height()))
-        print(height)
     sf_map_copy = map_image.copy()
     resized_map = sf_map_copy.resize((width, height))
     resized_photo = ImageTk.PhotoImage(resized_map)
@@ -201,7 +175,6 @@ def place_gps_markers(hotspots):
     map_image = Image.open(MAP_FILENAME)
     sf_map_photo = ImageTk.PhotoImage(map_image)
     map_label = tk.Label(ROOT, image = sf_map_photo)
-    print("made it start")
     gps_marker_image = Image.open(GPS_FILENAME)
     gps_marker_image = adjust_gps_marker_size(gps_marker_image, map_image)
     map_height = map_image.height
@@ -212,16 +185,10 @@ def place_gps_markers(hotspots):
         y = int(map_height * coords[1])
         map_image.paste(gps_marker_image, (x, y), gps_marker_image)
     sf_map_photo = ImageTk.PhotoImage(map_image)
-    #new_file_name = "hotspots.png" ### DELETE ME ###
-    #sf_map_photo._PhotoImage__photo.write(new_file_name)  ### DELETE ME ###
-    #map_label = tk.Label(ROOT, image = sf_map_photo)
     map_label.bind(CONFIGURE_EVENT_STRING,screen_resized)
-    print(ROOT.winfo_height())
-    #adjust_map_size(ROOT.winfo_height())
     map_label.place(relwidth = MAP_LABEL_WIDTH,
                     relheight = MAP_LABEL_HEIGHT,
                 relx = MAP_X, rely = MAP_Y)
-    print("made it end")
     return sf_map_photo, map_label
 
 ### OPEN FILE ###
