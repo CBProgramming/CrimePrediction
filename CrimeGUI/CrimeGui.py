@@ -40,17 +40,24 @@ def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
 
 def make_prediction(model, x_data, y_data, neighbourhoods_data):
     y_predict = model.predict(x_data)
-    print(y_predict)
     y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_predict,neighbourhoods_data)
+    neighbourhoods_data.reset_index(drop=True, inplace=True)
     print(y_predict)
     x = 0
     hotspot_values = []
     hotspot_neighbourhoods = []
     while x < NUM_HOTSPOTS:
+        #print("Entered While")
         index_max = np.argmax(y_predict)
+        #print("Index max:",index_max)
+        #print(y_predict[index_max])
         hotspot_values.append(y_predict[index_max])
+        #print("Hotspot values:",hotspot_values)
+        #print(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
         hotspot_neighbourhoods.append(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
         y_predict = np.delete(y_predict,index_max)
+        #print("Size of y:",y_predict.shape)
+        #print(neighbourhoods_data)
         neighbourhoods_data = neighbourhoods_data.drop([index_max])
         neighbourhoods_data.reset_index(drop=True, inplace=True)
         x += 1
@@ -75,8 +82,11 @@ def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
         y_predict[parent_index] = parent_value
     neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[indexes_to_remove])
     indexes_to_remove.sort(reverse=True)
+    print(neighbourhoods_data)
     for index in indexes_to_remove:
         y_predict = np.delete(y_predict,index)
+        #neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[index])
+    print(neighbourhoods_data)
     return y_predict,neighbourhoods_data
     
     
