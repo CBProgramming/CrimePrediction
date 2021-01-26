@@ -75,7 +75,7 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     #print(hotspot_indexes)
     print(hotspot_values)
     print(hotspot_neighbourhoods)
-    sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspot_neighbourhoods)
+    sf_map_photo, map_label = place_gps_markers(hotspot_neighbourhoods)
 
 def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
     indexes_to_remove = []
@@ -161,16 +161,26 @@ def date_selected():
 
 
 ### MAP FRAME ###
-def adjust_map_size(label):
+def screen_resized(config_event):
+    height = config_event.height
+    adjust_map_size(height)
+            
+def adjust_map_size(height):
     photo_height = sf_map_photo.height()
-    height = label.height
+    print('Photo height:',photo_height)
     suggested_width = int(height/(sf_map_photo.height())*(sf_map_photo.width()))
+    print('Suggested width:',suggested_width)
     if (map_label.winfo_width() >= suggested_width):
+        print("If entered")
         width = suggested_width
     else:
+        print("Else entered")
         width = map_label.winfo_width()
+        print('Width:',width)
+        print(height)
         height = int(width/(sf_map_photo.width())*(sf_map_photo.height()))
-    sf_map_copy = sf_map_image.copy()
+        print(height)
+    sf_map_copy = map_image.copy()
     resized_map = sf_map_copy.resize((width, height))
     resized_photo = ImageTk.PhotoImage(resized_map)
     map_label.config(image = resized_photo)
@@ -185,7 +195,13 @@ def adjust_gps_marker_size(marker,map_image):
     return resized_marker
 
 def place_gps_markers(hotspots):
+    global map_image
+    global sf_map_photo
+    global map_label
     map_image = Image.open(MAP_FILENAME)
+    sf_map_photo = ImageTk.PhotoImage(map_image)
+    map_label = tk.Label(ROOT, image = sf_map_photo)
+    print("made it start")
     gps_marker_image = Image.open(GPS_FILENAME)
     gps_marker_image = adjust_gps_marker_size(gps_marker_image, map_image)
     map_height = map_image.height
@@ -198,17 +214,15 @@ def place_gps_markers(hotspots):
     sf_map_photo = ImageTk.PhotoImage(map_image)
     #new_file_name = "hotspots.png" ### DELETE ME ###
     #sf_map_photo._PhotoImage__photo.write(new_file_name)  ### DELETE ME ###
-    print(ROOT)
-    components = canvas.slaves()
-    print(components)
-    map_label = tk.Label(ROOT, image = sf_map_photo)
-    map_label.bind(CONFIGURE_EVENT_STRING,adjust_map_size)
-    #adjust_map_size(sf_map_photo)
+    #map_label = tk.Label(ROOT, image = sf_map_photo)
+    map_label.bind(CONFIGURE_EVENT_STRING,screen_resized)
+    print(ROOT.winfo_height())
+    #adjust_map_size(ROOT.winfo_height())
     map_label.place(relwidth = MAP_LABEL_WIDTH,
                     relheight = MAP_LABEL_HEIGHT,
                 relx = MAP_X, rely = MAP_Y)
-    print("made it")
-    return sf_map_photo, map_label, map_image
+    print("made it end")
+    return sf_map_photo, map_label
 
 ### OPEN FILE ###
 def open_file():
@@ -464,38 +478,7 @@ NEIGHBOURHOOD_COORDS = {
     "Yerba Buena Island":(0.72,0.26)
     }
 
-### HOTSPOTS SHOULD BE HOTSPOTS CALCULATED BY THE MACHINE LEARNING MODEL ###
-hotspots = ["West Portal"]
-
-
-### create image with relevant gps hotspots, call this once hotspots are calculated
-sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspots)
+# setup initial GUI display
+place_gps_markers([])
 setup_dropdown_menus()
-
-hotspots = ["Tenderloin"]
-sf_map_photo, map_label, sf_map_image = place_gps_markers(hotspots)
-
-
 ROOT.mainloop()
-
-#create fram to place things on
-#frame = tk.Frame(ROOT, bg = '#99b3ff')
-#set width and height to that of parent
-#frame.place(relwidth = 1, relheight = 1)
-#set width and height to 0.8 of parent, and center
-#frame.place(relwidth = 0.8, relheight = 0.8, relx = 0.1, rely = 0.1)
-
-#def button_function(entry):
-#    print(entry)
-
-#create button in frame
-#button = tk.Button(frame, text = "Test button", bg= 'blue', fg = 'red',
-#                   command = lambda: button_function(entry.get()))
-#button.pack(side = 'left')
-
-#label = tk.Label(frame, text="Label")
-#label.pack(side = 'left')
-
-#entry = tk.Entry(frame, bg = 'green')
-#entry.pack()
-
