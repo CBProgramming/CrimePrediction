@@ -42,7 +42,7 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
     y_predict = model.predict(x_data)
     y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_predict,neighbourhoods_data)
     neighbourhoods_data.reset_index(drop=True, inplace=True)
-    print(y_predict)
+    #print(y_predict)
     x = 0
     hotspot_values = []
     hotspot_neighbourhoods = []
@@ -61,9 +61,14 @@ def make_prediction(model, x_data, y_data, neighbourhoods_data):
         neighbourhoods_data = neighbourhoods_data.drop([index_max])
         neighbourhoods_data.reset_index(drop=True, inplace=True)
         x += 1
-    print(hotspot_values)
-    print(hotspot_neighbourhoods)
+    #print(hotspot_values)
+    #print(hotspot_neighbourhoods)
     sf_map_photo, map_label = place_gps_markers(hotspot_neighbourhoods)
+    update_text(hotspot_neighbourhoods,hotspot_values)
+    colour = TITLE_LABEL["foreground"]
+    if colour == BACKGROUND_COLOUR:
+        display_label_text()
+        
 
 def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
     indexes_to_remove = []
@@ -82,11 +87,11 @@ def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
         y_predict[parent_index] = parent_value
     neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[indexes_to_remove])
     indexes_to_remove.sort(reverse=True)
-    print(neighbourhoods_data)
+    #print(neighbourhoods_data)
     for index in indexes_to_remove:
         y_predict = np.delete(y_predict,index)
         #neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[index])
-    print(neighbourhoods_data)
+    #print(neighbourhoods_data)
     return y_predict,neighbourhoods_data
     
     
@@ -134,6 +139,7 @@ def show_calendar():
         CALENDAR.place_forget()
     else:
         CALENDAR.place(relx = CALENDAR_REL_X, rely = CALENDAR_REL_Y)
+        CALENDAR.lift()
 
 def date_selected():
     CALENDAR.place_forget()
@@ -150,11 +156,41 @@ def date_selected():
         if (MODEL_KEY != "" and FEATURES_KEY != "" and MODEL_KEY in MODELS and FEATURES_KEY in FEATURE_SELECTION):
             filter_data(data_to_filter, MODEL_KEY, FEATURES_KEY,calendar_date)
 
+def update_text(neighbourhoods,values):
+    for i in range(NUM_HOTSPOTS):
+        NEIGHBOURHOOD_LABEL_STRINGS[i].set(neighbourhoods[i])
+        HOTSPOT_VALUE_LABEL_INTS[i].set(int(round(values[i],0)))
+    reposition_neighborhood_labels()
+
+def reposition_neighborhood_labels():
+    if (TITLE_LABEL.winfo_ismapped()):
+        TITLE_LABEL.place_forget()
+    TITLE_LABEL.place(relx = TITLE_LABEL_REL_X, rely = TITLE_LABEL_REL_Y)
+    title_height = TITLE_LABEL.winfo_height()
+    title_y = TITLE_LABEL.winfo_rooty()
+    label_rel_y = NEIGHBORHOOD_LABELS_REL_Y
+    for i in range(NUM_HOTSPOTS):
+        if (NEIGHBOURHOOD_LABELS[i].winfo_ismapped()):
+            NEIGHBOURHOOD_LABELS[i].place_forget()
+        NEIGHBOURHOOD_LABELS[i].place(relx = NEIGHBOURHOOD_LABELS_REL_X, rely = label_rel_y)
+        if (HOTSPOT_VALUE_LABELS[i].winfo_ismapped()):
+            HOTSPOT_VALUE_LABELS[i].place_forget()
+        HOTSPOT_VALUE_LABELS[i].place(relx = PREDICTION_VALUE_REL_X, rely = label_rel_y)
+        label_height = NEIGHBOURHOOD_LABELS[i].winfo_height()
+        window_height = ROOT.winfo_height()
+        label_rel_y = label_rel_y + (1/window_height*label_height)
+
+def display_label_text():
+    TITLE_LABEL.configure(fg = TEXT_COLOUR)
+    for i in range(NUM_HOTSPOTS):
+        NEIGHBOURHOOD_LABELS[i].configure(fg = TEXT_COLOUR)
+        HOTSPOT_VALUE_LABELS[i].configure(fg = TEXT_COLOUR)
 
 ### MAP FRAME ###
 def screen_resized(config_event):
     height = config_event.height
     adjust_map_size(height)
+    reposition_neighborhood_labels()
             
 def adjust_map_size(height):
     photo_height = sf_map_photo.height()
@@ -208,6 +244,31 @@ def open_file():
     except:
         messagebox.showerror(FILE_NOT_FOUND_TITLE, FILE_NOT_FOUND_MESSAGE + DEFAULT_FILE_NAME + CSV_FILE_EXTENSION)
     return DATA_FILE
+
+### INITIALISE VARIABLE LISTS ###
+def initialise_neighbourhood_string_vars():
+    string_vars = []
+    for i in range(NUM_HOTSPOTS):
+        string_vars.append(tk.StringVar())
+    return string_vars
+
+def initialise_neighbourhood_prediction_int_vars():
+    int_vars = []
+    for i in range(NUM_HOTSPOTS):
+        int_vars.append(tk.IntVar())
+    return int_vars
+
+def initialise_neighbourhood_labels():
+    labels = []
+    for i in range(NUM_HOTSPOTS):
+        labels.append(tk.Label(UI_FRAME, bg = BACKGROUND_COLOUR, textvariable = NEIGHBOURHOOD_LABEL_STRINGS[i], font = TEXT_DISPLAY_FONT, padx=1, fg = BACKGROUND_COLOUR))
+    return labels
+
+def initialise_hotspot_value_labels():
+    labels = []
+    for i in range(NUM_HOTSPOTS):
+        labels.append(tk.Label(UI_FRAME, bg = BACKGROUND_COLOUR, textvariable = HOTSPOT_VALUE_LABEL_INTS[i], font = TEXT_DISPLAY_FONT, padx=1, fg = BACKGROUND_COLOUR))
+    return labels
 
 
 ### Define file variables ###
@@ -286,12 +347,19 @@ FEATURE_FILE_TAGS = {
     }
 
 ### Define model variables ###
-SVM_NAME, RANDOM_FOREST_NAME, DECISION_TREE_NAME = "SVM","Random Forest","Decision Tree"
-MODELS = [SVM_NAME, RANDOM_FOREST_NAME, DECISION_TREE_NAME]
+DECISION_TREE_NAME = "Decision Tree"
+LINERAR_REGRESSION_NAME = "Linear Regression"
+RIDGE_REGRESSION_NAME = "Ridge Regression"
+SVM_NAME = "SVM"
+MODELS = [DECISION_TREE_NAME,
+          LINERAR_REGRESSION_NAME,
+          RIDGE_REGRESSION_NAME,
+          SVM_NAME]
 MODEL_FILE_TAGS = {
-    SVM_NAME : "svm",
-    RANDOM_FOREST_NAME : "random_forest",
-    DECISION_TREE_NAME : "decision_tree"
+    DECISION_TREE_NAME : "decision_tree",
+    LINERAR_REGRESSION_NAME: "linear_regression",
+    RIDGE_REGRESSION_NAME: "ridge_regression",
+    SVM_NAME : "svm"
     }
 
 ### Define GUI geometry ###
@@ -312,10 +380,12 @@ DROPDOWN_REL_XS = [((DROPDOWN_REL_X*1) + (DROPDOWN_WIDTH*0)),
                    ((DROPDOWN_REL_X*3) + (DROPDOWN_WIDTH*2))]
 CALENDAR_REL_X = ((DROPDOWN_REL_X*1) + (DROPDOWN_WIDTH*0))
 CALENDAR_REL_Y = (DROPDOWN_REL_Y + DROPDOWN_HEIGHT)
-STATS_FRAME_HEIGHT = 1 - UI_FRAME_HEIGHT
-STATS_FRAME_WIDTH = UI_FRAME_WIDTH
-STATS_X = 0.0
-STATS_Y = UI_FRAME_HEIGHT
+TITLE_LABEL_REL_X = 0.05
+TITLE_LABEL_REL_Y = 0.15
+LABEL_Y_GAP = 0.05
+PREDICTION_VALUE_REL_X = TITLE_LABEL_REL_X
+NEIGHBOURHOOD_LABELS_REL_X = 0.2
+NEIGHBORHOOD_LABELS_REL_Y = TITLE_LABEL_REL_Y + LABEL_Y_GAP
 MAP_LABEL_HEIGHT = 1
 MAP_LABEL_WIDTH = 1 - UI_FRAME_WIDTH
 MAP_X = UI_FRAME_WIDTH
@@ -331,14 +401,23 @@ canvas = tk.Canvas(ROOT, height = CANVAS_HEIGHT, width = CANVAS_WIDTH)
 canvas.pack()
 
 ### Define GUI components
+TEXT_COLOUR = "white"
+BACKGROUND_COLOUR = "#000832"
+TEXT_DISPLAY_FONT = "Arial 16"
 DATE_BUTTON = tk.Button()
-UI_FRAME = tk.Frame(ROOT, bg = 'blue')
+UI_FRAME = tk.Frame(ROOT, bg = BACKGROUND_COLOUR)
 CALENDAR = Calendar(UI_FRAME, selectmode = "day")
 SELECTED_MODEL = tk.StringVar()
 SELECTED_FEATURES = tk.StringVar()
 DATE_BUTTON_TEXT = tk.StringVar()
 MODEL_KEY = SELECTED_MODEL.get()
 FEATURES_KEY = SELECTED_FEATURES.get()
+TITLE_LABEL = tk.Label(UI_FRAME, bg = BACKGROUND_COLOUR, text = "Hotspot predictions", font = TEXT_DISPLAY_FONT + " bold", padx=1, fg = BACKGROUND_COLOUR)
+NEIGHBOURHOOD_LABEL_STRINGS = initialise_neighbourhood_string_vars()
+NEIGHBOURHOOD_LABELS = initialise_neighbourhood_labels()
+HOTSPOT_VALUE_LABEL_INTS = initialise_neighbourhood_prediction_int_vars()
+HOTSPOT_VALUE_LABELS = initialise_hotspot_value_labels()
+FIRST_PREDICTION = True
 
 ### Define Neighbourhood Coordinates ###
 PARENT_NEIGHBOURHOODS = {
