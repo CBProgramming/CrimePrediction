@@ -92,7 +92,7 @@ def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
     
 
 ### UI FRAME ###
-def setup_dropdown_menus():
+def setup_ui():
     UI_FRAME.place(relwidth = UI_FRAME_WIDTH, relheight = UI_FRAME_HEIGHT,
                    relx = UI_X, rely = UI_Y)
     DATE_BUTTON_TEXT.set(DATE_DROPDOWN_HELP_TEXT)
@@ -457,5 +457,5 @@ NEIGHBOURHOOD_COORDS = {
 
 # setup initial GUI display
 place_gps_markers([])
-setup_dropdown_menus()
+setup_ui()
 ROOT.mainloop()
