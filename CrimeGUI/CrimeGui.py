@@ -40,59 +40,120 @@ def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
 
 def make_prediction(model, x_data, y_data, neighbourhoods_data):
     y_predict = model.predict(x_data)
-    y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_predict,neighbourhoods_data)
+    y_data,y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_data,y_predict,neighbourhoods_data)
     neighbourhoods_data.reset_index(drop=True, inplace=True)
-    #print(y_predict)
+    actual_neighbourhoods_data = neighbourhoods_data.copy()
     x = 0
-    hotspot_values = []
-    hotspot_neighbourhoods = []
+    predicted_hotspot_values = []
+    predicted_hotspot_neighbourhoods = []
+    actual_hotspot_values = []
+    actual_hotspot_neighbourhoods = []
     while x < NUM_HOTSPOTS:
-        #print("Entered While")
-        index_max = np.argmax(y_predict)
-        #print("Index max:",index_max)
-        #print(y_predict[index_max])
-        hotspot_values.append(y_predict[index_max])
-        #print("Hotspot values:",hotspot_values)
-        #print(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
-        hotspot_neighbourhoods.append(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
-        y_predict = np.delete(y_predict,index_max)
-        #print("Size of y:",y_predict.shape)
-        #print(neighbourhoods_data)
-        neighbourhoods_data = neighbourhoods_data.drop([index_max])
+        predicted_index_max = np.argmax(y_predict)
+        predicted_hotspot_values.append(y_predict[predicted_index_max])
+        predicted_hotspot_neighbourhoods.append(neighbourhoods_data.at[predicted_index_max,NEIGHBOURHOOD_COL_KEY])
+        y_predict = np.delete(y_predict,predicted_index_max)
+        neighbourhoods_data = neighbourhoods_data.drop([predicted_index_max])
         neighbourhoods_data.reset_index(drop=True, inplace=True)
+        actual_index_max = np.argmax(y_data)
+        actual_hotspot_values.append(y_data[actual_index_max])
+        actual_hotspot_neighbourhoods.append(actual_neighbourhoods_data.at[actual_index_max,NEIGHBOURHOOD_COL_KEY])
+        y_data = np.delete(y_data,actual_index_max)
+        actual_neighbourhoods_data = actual_neighbourhoods_data.drop([actual_index_max])
+        actual_neighbourhoods_data.reset_index(drop=True, inplace=True)
         x += 1
-    #print(hotspot_values)
-    #print(hotspot_neighbourhoods)
-    sf_map_photo, map_label = place_gps_markers(hotspot_neighbourhoods)
-    update_text(hotspot_neighbourhoods,hotspot_values)
+    lowest_actual_hotspot_value = actual_hotspot_values[NUM_HOTSPOTS - 1]
+    x = 0
+    while x < len(y_data):
+        if y_data[x] == lowest_actual_hotspot_value:
+            print("Attempting to append")
+            actual_hotspot_neighbourhoods.append(actual_neighbourhoods_data.at[x,NEIGHBOURHOOD_COL_KEY])
+        x += 1
+    print("Fully appended at length",len(actual_hotspot_neighbourhoods))
+    sf_map_photo, map_label = place_gps_markers(predicted_hotspot_neighbourhoods)
+    update_text(predicted_hotspot_neighbourhoods,predicted_hotspot_values)
     colour = TITLE_LABEL["foreground"]
-    if colour == BACKGROUND_COLOUR:
-        display_label_text()
-        
+    display_label_text(predicted_hotspot_neighbourhoods, actual_hotspot_neighbourhoods)
 
-def merge_sub_neighbourhoods(y_predict,neighbourhoods_data):
+#def make_prediction(model, x_data, y_data, neighbourhoods_data):
+#    y_predict = model.predict(x_data)
+#    print(len(y_data))
+#    y_data,y_predict,neighbourhoods_data = merge_sub_neighbourhoods(y_data,y_predict,neighbourhoods_data)
+#    print(len(y_data))
+#    neighbourhoods_data.reset_index(drop=True, inplace=True)
+#    #print(y_predict)
+#    x = 0
+#    hotspot_values = []
+#    hotspot_neighbourhoods = []
+#    while x < NUM_HOTSPOTS:
+#        index_max = np.argmax(y_predict)
+#        hotspot_values.append(y_predict[index_max])
+#        hotspot_neighbourhoods.append(neighbourhoods_data.at[index_max,NEIGHBOURHOOD_COL_KEY])
+#        y_predict = np.delete(y_predict,index_max)
+#        neighbourhoods_data = neighbourhoods_data.drop([index_max])
+#        neighbourhoods_data.reset_index(drop=True, inplace=True)
+#        x += 1
+#    sf_map_photo, map_label = place_gps_markers(hotspot_neighbourhoods)
+#    update_text(hotspot_neighbourhoods,hotspot_values)
+#    colour = TITLE_LABEL["foreground"]
+#    if colour == BACKGROUND_COLOUR:
+#        display_label_text()
+        
+def get_non_negative_value(value):
+    if value < 0:
+        return 0
+    else:
+        return value
+
+def merge_sub_neighbourhoods(y_data,y_predict,neighbourhoods_data):
+    y_data = pd.DataFrame(y_data).to_numpy().flatten()
     indexes_to_remove = []
     for parent_key in PARENT_NEIGHBOURHOODS:
         parent_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == parent_key].tolist()[0]
-        parent_value = y_predict[parent_index]
-        if parent_value < 0:
-            parent_value = 0
+        y_predict_parent_value = get_non_negative_value(y_predict[parent_index])
+        y_data_parent_value = get_non_negative_value(y_data[parent_index])
         for sub_neighbourhood in PARENT_NEIGHBOURHOODS[parent_key]:
             sub_neighbourhood_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == sub_neighbourhood].tolist()[0]
             indexes_to_remove.append(sub_neighbourhood_index)
-            sub_neighbourhood_value = y_predict[sub_neighbourhood_index]
-            if sub_neighbourhood_value < 0:
-                sub_neighbourhood_value = 0
-            parent_value = parent_value + sub_neighbourhood_value
-        y_predict[parent_index] = parent_value
+            y_predict_sub_neighbourhood_value = get_non_negative_value(y_predict[sub_neighbourhood_index])
+            y_predict_parent_value = y_predict_parent_value + y_predict_sub_neighbourhood_value
+            y_data_sub_neighbourhood_value = get_non_negative_value(y_data[sub_neighbourhood_index])
+            y_data_parent_value = y_data_parent_value + y_data_sub_neighbourhood_value
+        y_predict[parent_index] = y_predict_parent_value
+        y_data[parent_index] = y_data_parent_value
     neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[indexes_to_remove])
     indexes_to_remove.sort(reverse=True)
     #print(neighbourhoods_data)
     for index in indexes_to_remove:
         y_predict = np.delete(y_predict,index)
+        y_data = np.delete(y_data,index)
         #neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[index])
     #print(neighbourhoods_data)
-    return y_predict,neighbourhoods_data
+    return y_data,y_predict,neighbourhoods_data
+
+#def merge_sub_neighbourhoods(y_data,y_predict,neighbourhoods_data):
+#    indexes_to_remove = []
+#    for parent_key in PARENT_NEIGHBOURHOODS:
+#        parent_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == parent_key].tolist()[0]
+#        parent_value = y_predict[parent_index]
+#        if parent_value < 0:
+#            parent_value = 0
+#        for sub_neighbourhood in PARENT_NEIGHBOURHOODS[parent_key]:
+#            sub_neighbourhood_index = neighbourhoods_data.index[neighbourhoods_data[NEIGHBOURHOOD_COL_KEY] == sub_neighbourhood].tolist()[0]
+#            indexes_to_remove.append(sub_neighbourhood_index)
+#            sub_neighbourhood_value = y_predict[sub_neighbourhood_index]
+#            if sub_neighbourhood_value < 0:
+#                sub_neighbourhood_value = 0
+#            parent_value = parent_value + sub_neighbourhood_value
+#        y_predict[parent_index] = parent_value
+#    neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[indexes_to_remove])
+#    indexes_to_remove.sort(reverse=True)
+#    #print(neighbourhoods_data)
+#    for index in indexes_to_remove:
+#        y_predict = np.delete(y_predict,index)
+#        #neighbourhoods_data = neighbourhoods_data.drop(neighbourhoods_data.index[index])
+#    #print(neighbourhoods_data)
+#    return y_data,y_predict,neighbourhoods_data
     
     
 
@@ -180,11 +241,15 @@ def reposition_neighborhood_labels():
         window_height = ROOT.winfo_height()
         label_rel_y = label_rel_y + (1/window_height*label_height)
 
-def display_label_text():
+def display_label_text(predicted_hotspot_neighbourhoods, actual_hotspot_neighbourhoods):
     TITLE_LABEL.configure(fg = TEXT_COLOUR)
     for i in range(NUM_HOTSPOTS):
-        NEIGHBOURHOOD_LABELS[i].configure(fg = TEXT_COLOUR)
-        HOTSPOT_VALUE_LABELS[i].configure(fg = TEXT_COLOUR)
+        if predicted_hotspot_neighbourhoods[i] in actual_hotspot_neighbourhoods:
+            NEIGHBOURHOOD_LABELS[i].configure(fg = CORRECT_COLOUR)
+            HOTSPOT_VALUE_LABELS[i].configure(fg = CORRECT_COLOUR)
+        else:
+            NEIGHBOURHOOD_LABELS[i].configure(fg = INCORRECT_COLOUR)
+            HOTSPOT_VALUE_LABELS[i].configure(fg = INCORRECT_COLOUR)
 
 ### MAP FRAME ###
 def screen_resized(config_event):
@@ -391,7 +456,7 @@ MAP_LABEL_WIDTH = 1 - UI_FRAME_WIDTH
 MAP_X = UI_FRAME_WIDTH
 MAP_Y = 0.0
 GPS_MARKER_TO_MAP_SCALE = 0.03
-NUM_HOTSPOTS = 10
+NUM_HOTSPOTS = 15
 
 ### INITIALIZE MAIN WINDOW ###
 ROOT = tk.Tk()
@@ -402,6 +467,8 @@ canvas.pack()
 
 ### Define GUI components
 TEXT_COLOUR = "white"
+CORRECT_COLOUR = "green"
+INCORRECT_COLOUR = "red"
 BACKGROUND_COLOUR = "#000832"
 TEXT_DISPLAY_FONT = "Arial 16"
 DATE_BUTTON = tk.Button()
