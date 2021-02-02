@@ -429,7 +429,6 @@ NEIGHBOURHOOD_LABEL_STRINGS = initialise_neighbourhood_string_vars()
 NEIGHBOURHOOD_LABELS = initialise_neighbourhood_labels()
 HOTSPOT_VALUE_LABEL_INTS = initialise_neighbourhood_prediction_int_vars()
 HOTSPOT_VALUE_LABELS = initialise_hotspot_value_labels()
-FIRST_PREDICTION = True
 
 ### Define Neighbourhood Coordinates ###
 PARENT_NEIGHBOURHOODS = {
