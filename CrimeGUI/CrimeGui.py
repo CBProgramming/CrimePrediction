@@ -149,9 +149,10 @@ def show_calendar():
 
 def date_selected():
     CALENDAR.place_forget()
-    calendar_date = CALENDAR.selection_get().strftime("%Y-%m-%d")
+    calendar_date = CALENDAR.selection_get().strftime("%d/%m/%Y")
     data_to_filter = DATA_FILE.copy()
     check_date_data = data_to_filter.loc[data_to_filter['Date'].str.contains(calendar_date)]
+
     if (check_date_data.empty):
         DATE_BUTTON_TEXT.set(DATE_DROPDOWN_HELP_TEXT)
         messagebox.showerror(NO_DATA_FOUND_TITLE, NO_DATA_FOUND_MESSAGE)
@@ -358,15 +359,23 @@ FEATURE_FILE_TAGS = {
 
 ### Define model variables ###
 DECISION_TREE_NAME = "Decision Tree"
+ELASTIC_NET_NAME = "Elastic Net"
+LASSO_NAME = "Lasso"
 LINERAR_REGRESSION_NAME = "Linear Regression"
 RIDGE_REGRESSION_NAME = "Ridge Regression"
 SVM_NAME = "SVM"
+
 MODELS = [DECISION_TREE_NAME,
+          ELASTIC_NET_NAME,
+          LASSO_NAME,
           LINERAR_REGRESSION_NAME,
           RIDGE_REGRESSION_NAME,
           SVM_NAME]
+
 MODEL_FILE_TAGS = {
     DECISION_TREE_NAME : "decision_tree",
+    ELASTIC_NET_NAME : "elastic_net",
+    LASSO_NAME : "lasso",
     LINERAR_REGRESSION_NAME: "linear_regression",
     RIDGE_REGRESSION_NAME: "ridge_regression",
     SVM_NAME : "svm"
