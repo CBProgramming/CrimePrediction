@@ -10,8 +10,12 @@ import numpy as np
 ### FILER DATASET AND PREDICT ###
       
 def filter_data(data, model_key, features_key,calendar_date):
+    if (CALENDAR.winfo_ismapped()):
+        CALENDAR.place_forget()
     x_data = data.loc[data[DATE_COL_KEY].str.contains(calendar_date)]
     if (x_data.empty):
+        place_gps_markers([])
+        hide_previous_results()
         DATE_BUTTON_TEXT.set(DATE_DROPDOWN_HELP_TEXT)
         messagebox.showerror(NO_DATA_FOUND_TITLE, NO_DATA_FOUND_MESSAGE)
     else:
@@ -22,10 +26,28 @@ def filter_data(data, model_key, features_key,calendar_date):
             y_data.reset_index(drop=True, inplace=True)
             features_selected = FEATURES[features_key]
             x_data = x_data[features_selected]
+            place_gps_markers([])
+            calculating_results()
             load_model(x_data, y_data, neighbourhoods_data, model_key, features_key)
         except:
+            hide_previous_results()
             messagebox.showerror(FEATURES_NOT_IN_DATA_TITLE, FEATURES_NOT_IN_DATA_MESSAGE + COMMA_SPACE.join(features_selected))
-        
+
+def calculating_results():
+    TITLE_LABEL.configure(fg = TEXT_COLOUR)
+    TITLE_TEXT.set(TITLE_CALCULATING)
+    for i in range(NUM_HOTSPOTS):
+        NEIGHBOURHOOD_LABELS[i].configure(fg = BACKGROUND_COLOUR)
+        HOTSPOT_VALUE_LABELS[i].configure(fg = BACKGROUND_COLOUR)
+    ROOT.update()
+
+def hide_previous_results():
+    TITLE_LABEL.configure(fg = BACKGROUND_COLOUR)
+    TITLE_TEXT.set(TITLE_CALCULATING)
+    for i in range(NUM_HOTSPOTS):
+        NEIGHBOURHOOD_LABELS[i].configure(fg = BACKGROUND_COLOUR)
+        HOTSPOT_VALUE_LABELS[i].configure(fg = BACKGROUND_COLOUR)
+    ROOT.update()
 
 def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
     model_tag = MODEL_FILE_TAGS[model_key]
@@ -36,6 +58,7 @@ def load_model(x_data, y_data, neighbourhoods_data, model_key, features_key):
             model = pickle.load(f)
             make_prediction(model, x_data, y_data, neighbourhoods_data)
     except:
+        hide_previous_results()
         messagebox.showerror(MODEL_NOT_LOADED_TITLE, MODEL_NOT_LOADED_MESSAGE + file_path)
 
 def make_prediction(model, x_data, y_data, neighbourhoods_data):
@@ -154,6 +177,8 @@ def date_selected():
     check_date_data = data_to_filter.loc[data_to_filter['Date'].str.contains(calendar_date)]
 
     if (check_date_data.empty):
+        place_gps_markers([])
+        hide_previous_results()
         DATE_BUTTON_TEXT.set(DATE_DROPDOWN_HELP_TEXT)
         messagebox.showerror(NO_DATA_FOUND_TITLE, NO_DATA_FOUND_MESSAGE)
     else:
@@ -166,7 +191,8 @@ def date_selected():
 def update_text(neighbourhoods,values):
     for i in range(NUM_HOTSPOTS):
         NEIGHBOURHOOD_LABEL_STRINGS[i].set(neighbourhoods[i])
-        HOTSPOT_VALUE_LABEL_INTS[i].set(int(round(values[i],0)))
+        if values:
+            HOTSPOT_VALUE_LABEL_INTS[i].set(int(round(values[i],0)))
     reposition_neighborhood_labels()
 
 def reposition_neighborhood_labels():
@@ -189,6 +215,7 @@ def reposition_neighborhood_labels():
 
 def display_label_text(predicted_hotspot_neighbourhoods, actual_hotspot_neighbourhoods):
     TITLE_LABEL.configure(fg = TEXT_COLOUR)
+    TITLE_TEXT.set(TITLE_PREDICTIONS)
     for i in range(NUM_HOTSPOTS):
         if predicted_hotspot_neighbourhoods[i] in actual_hotspot_neighbourhoods:
             NEIGHBOURHOOD_LABELS[i].configure(fg = CORRECT_COLOUR)
@@ -330,7 +357,7 @@ DATE_DROPDOWN_HELP_TEXT = "Select\nDate"
 FEATURES_DROPDOWN_HELP_TEXT = "Select\nFeature Set"
 
 ### Define feature selection variables ###
-F_REGRESSION_NAME, CHI2_NAME, ADABOOST_NAME, EQUAL_DATA_NAME, ALL_BUS_NAME = "F-Regression","Chi-Squared","AdaBoost","Equal Selection","All Business"
+F_REGRESSION_NAME, CHI2_NAME, ADABOOST_NAME, EQUAL_DATA_NAME, ALL_BUS_NAME = "F-Regression","Chi-Squared","AdaBoost","Equal\n Selection","All\n Business"
 FEATURE_SELECTION = [F_REGRESSION_NAME, CHI2_NAME, ADABOOST_NAME, EQUAL_DATA_NAME, ALL_BUS_NAME]
 FEATURES = {
     F_REGRESSION_NAME : ['Reports 1 day ago', 'Reports 2 days ago', 'Reports 3 days ago',
@@ -358,25 +385,32 @@ FEATURE_FILE_TAGS = {
     }
 
 ### Define model variables ###
-DECISION_TREE_NAME = "Decision Tree"
-ELASTIC_NET_NAME = "Elastic Net"
+ANN_NAME = "ANN\n (MLP)"
+DECISION_TREE_NAME = "Decision\n Tree"
+ELASTIC_NET_NAME = "Elastic\n Net"
 LASSO_NAME = "Lasso"
-LINERAR_REGRESSION_NAME = "Linear Regression"
-RIDGE_REGRESSION_NAME = "Ridge Regression"
+LINERAR_REGRESSION_NAME = "Linear\n Regression"
+RANDOM_FOREST_NAME = "Random\n Forest"
+RIDGE_REGRESSION_NAME = "Ridge\n Regression"
 SVM_NAME = "SVM"
 
-MODELS = [DECISION_TREE_NAME,
+
+MODELS = [ANN_NAME,
+          DECISION_TREE_NAME,
           ELASTIC_NET_NAME,
           LASSO_NAME,
           LINERAR_REGRESSION_NAME,
+          RANDOM_FOREST_NAME,
           RIDGE_REGRESSION_NAME,
           SVM_NAME]
 
 MODEL_FILE_TAGS = {
+    ANN_NAME: "ann",
     DECISION_TREE_NAME : "decision_tree",
     ELASTIC_NET_NAME : "elastic_net",
     LASSO_NAME : "lasso",
     LINERAR_REGRESSION_NAME: "linear_regression",
+    RANDOM_FOREST_NAME: "random_forest",
     RIDGE_REGRESSION_NAME: "ridge_regression",
     SVM_NAME : "svm"
     }
@@ -431,9 +465,12 @@ CALENDAR = Calendar(UI_FRAME, selectmode = "day")
 SELECTED_MODEL = tk.StringVar()
 SELECTED_FEATURES = tk.StringVar()
 DATE_BUTTON_TEXT = tk.StringVar()
+TITLE_TEXT = tk.StringVar()
+TITLE_CALCULATING = "Calculating..."
+TITLE_PREDICTIONS = "Hotspot Predictions"
 MODEL_KEY = SELECTED_MODEL.get()
 FEATURES_KEY = SELECTED_FEATURES.get()
-TITLE_LABEL = tk.Label(UI_FRAME, bg = BACKGROUND_COLOUR, text = "Hotspot predictions", font = TEXT_DISPLAY_FONT + " bold", padx=1, fg = BACKGROUND_COLOUR)
+TITLE_LABEL = tk.Label(UI_FRAME, bg = BACKGROUND_COLOUR, textvariable = TITLE_TEXT, font = TEXT_DISPLAY_FONT + " bold", padx=1, fg = BACKGROUND_COLOUR)
 NEIGHBOURHOOD_LABEL_STRINGS = initialise_neighbourhood_string_vars()
 NEIGHBOURHOOD_LABELS = initialise_neighbourhood_labels()
 HOTSPOT_VALUE_LABEL_INTS = initialise_neighbourhood_prediction_int_vars()
