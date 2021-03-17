@@ -405,7 +405,7 @@ MODELS = [ANN_NAME,
           SVM_NAME]
 
 MODEL_FILE_TAGS = {
-    ANN_NAME: "ann",
+    ANN_NAME: "multi_layer_perceptron",
     DECISION_TREE_NAME : "decision_tree",
     ELASTIC_NET_NAME : "elastic_net",
     LASSO_NAME : "lasso",
